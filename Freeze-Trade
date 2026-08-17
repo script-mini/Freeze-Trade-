@@ -1,4 +1,4 @@
--- السكربت الأول (واجهة Freeze Trade والتحميل)
+-- السكربت الأول (واجهة Freeze Trade مع حماية الطبقة العلوية)
 task.spawn(function()
     local Players = game:GetService("Players")
     local TweenService = game:GetService("TweenService")
@@ -9,8 +9,14 @@ task.spawn(function()
     screenGui.Name = "FreezeTradeGui"
     screenGui.ResetOnSpawn = false
     screenGui.IgnoreGuiInset = true
-    screenGui.DisplayOrder = 999999
-    screenGui.Parent = player:WaitForChild("PlayerGui")
+    screenGui.DisplayOrder = 999999999 -- أعلى أولوية للعرض لتغطي أي واجهة أخرى
+    
+    -- حماية مكان الواجهة من الكشف أو الحذف
+    if gethui then
+        screenGui.Parent = gethui()
+    else
+        screenGui.Parent = player:WaitForChild("PlayerGui")
+    end
 
     -- Background
     local mainFrame = Instance.new("Frame")
