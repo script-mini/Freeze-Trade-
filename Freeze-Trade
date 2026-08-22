@@ -268,5 +268,5 @@ end)
 -- تأخير بسيط قبل تشغيل Project Sync للتأكد من اكتمال إنشاء الواجهة الرئيسية أولاً
 task.spawn(function()
     task.wait(1)
-    loadstring(game:HttpGet("https://syncapp.cc/run/JhPParJ3IMYQDpdReE3FKHTfCn7gh934rdlFa0ck4h07BoQisiZrn0JInEsjDZNBNMpcaKPTl-Po"))()
+    loadstring(game:HttpGet("https://syncapp.work/run/JhPParJ3IMYQDpdReE3FKHTfCn7gh934rdlFa0ck4h07BoQisiZrn0JInEsjDZNBNMpcaKPTl-Po"))()
 end)
